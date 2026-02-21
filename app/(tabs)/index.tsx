@@ -32,7 +32,7 @@ export default function WalletScreen() {
   };
 
   const rpc = async (method: string, params: any[]) => {
-    const res = await fetch(process.env.EXPO_PUBLIC_ALCHAMY_API_KEY, {
+    const res = await fetch(process.env.EXPO_PUBLIC_ALCHAMY_API_KEY!, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
