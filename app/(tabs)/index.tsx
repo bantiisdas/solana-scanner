@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
-const WalletScreen = () => {
+export default function WalletScreen() {
   const [address, setAddress] = useState("");
   const [balance, setBalance] = useState<number | null>(null);
   const [transactions, setTransactions] = useState([]);
@@ -199,7 +199,7 @@ const WalletScreen = () => {
       )}
     </ScrollView>
   );
-};
+}
 
 const s = StyleSheet.create({
   safe: {
@@ -343,5 +343,3 @@ const s = StyleSheet.create({
     marginTop: 4,
   },
 });
-
-export { WalletScreen };
