@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import {
@@ -117,87 +118,93 @@ export default function WalletScreen() {
   console.log(transactions, tokens);
 
   return (
-    <ScrollView style={s.scroll}>
-      <Text style={s.title}>SolScan</Text>
-      <View style={s.inputContainer}>
-        <TextInput
-          style={s.input}
-          placeholder="Solana Wallet Address"
-          placeholderTextColor="#6B7280"
-          autoCapitalize="none"
-          autoCorrect={false}
-          value={address}
-          onChangeText={setAddress}
-          selectTextOnFocus={true}
-          editable={true}
-        />
-      </View>
-      <View style={s.btnRow}>
-        <TouchableOpacity
-          style={[s.btn, loading && s.btnDisabled]}
-          onPress={handleSearch}
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={s.btnText}>Search</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      {balance !== null && (
-        <View style={s.card}>
-          <Text style={s.label}>SOL Balance</Text>
-          <View style={s.balanceRow}>
-            <Text style={s.balance}>{balance.toFixed(4)}</Text>
-            <Text style={s.sol}>SOL</Text>
-          </View>
-          <Text style={s.addr}>{short(address.trim(), 7)}</Text>
+    <SafeAreaView style={s.safe} edges={["top"]}>
+      <ScrollView style={s.scroll}>
+        <Text style={s.title}>SolScan</Text>
+        <View style={s.inputContainer}>
+          <TextInput
+            style={s.input}
+            placeholder="Solana Wallet Address"
+            placeholderTextColor="#6B7280"
+            autoCapitalize="none"
+            autoCorrect={false}
+            value={address}
+            onChangeText={setAddress}
+            selectTextOnFocus={true}
+            editable={true}
+          />
         </View>
-      )}
-
-      {tokens.length > 0 && (
-        <>
-          <Text style={s.section}>Tokens ({tokens.length})</Text>
-          <FlatList
-            data={tokens}
-            keyExtractor={(t) => t.mint}
-            scrollEnabled={false}
-            renderItem={({ item }) => (
-              <View style={s.row}>
-                <Text style={s.mint}>{short(item.mint, 6)}</Text>
-                <Text style={s.amount}>{item.amount}</Text>
-              </View>
+        <View style={s.btnRow}>
+          <TouchableOpacity
+            style={[s.btn, loading && s.btnDisabled]}
+            onPress={handleSearch}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={s.btnText}>Search</Text>
             )}
-          />
-        </>
-      )}
+          </TouchableOpacity>
+        </View>
 
-      {transactions.length > 0 && (
-        <>
-          <Text style={s.section}>Recent Transactions</Text>
-          <FlatList
-            data={transactions}
-            keyExtractor={(t) => t.sig}
-            scrollEnabled={false}
-            renderItem={({ item }) => (
-              <View style={s.row}>
-                <Text style={s.mint}>{short(item.sig, 6)}</Text>
-                <Text style={s.time}>{timeAgo(item.time)}</Text>
-                <Text
-                  style={{
-                    color: item.ok ? "#14F195" : "#EF4444",
-                    fontSize: 18,
-                  }}
+        {balance !== null && (
+          <View style={s.card}>
+            <Text style={s.label}>SOL Balance</Text>
+            <View style={s.balanceRow}>
+              <Text style={s.balance}>{balance.toFixed(4)}</Text>
+              <Text style={s.sol}>SOL</Text>
+            </View>
+            <Text style={s.addr}>{short(address.trim(), 7)}</Text>
+          </View>
+        )}
+
+        {tokens.length > 0 && (
+          <>
+            <Text style={s.section}>Tokens ({tokens.length})</Text>
+            <FlatList
+              data={tokens}
+              keyExtractor={(t) => t.mint}
+              scrollEnabled={false}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  onPress={() => router.push(`/token/${item?.mint}`)}
                 >
-                  {item.ok ? "+" : "-"}
-                </Text>
-              </View>
-            )}
-          />
-        </>
-      )}
-    </ScrollView>
+                  <View style={s.row}>
+                    <Text style={s.mint}>{short(item.mint, 6)}</Text>
+                    <Text style={s.amount}>{item.amount}</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+            />
+          </>
+        )}
+
+        {transactions.length > 0 && (
+          <>
+            <Text style={s.section}>Recent Transactions</Text>
+            <FlatList
+              data={transactions}
+              keyExtractor={(t) => t.sig}
+              scrollEnabled={false}
+              renderItem={({ item }) => (
+                <View style={s.row}>
+                  <Text style={s.mint}>{short(item.sig, 6)}</Text>
+                  <Text style={s.time}>{timeAgo(item.time)}</Text>
+                  <Text
+                    style={{
+                      color: item.ok ? "#14F195" : "#EF4444",
+                      fontSize: 18,
+                    }}
+                  >
+                    {item.ok ? "+" : "-"}
+                  </Text>
+                </View>
+              )}
+            />
+          </>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
