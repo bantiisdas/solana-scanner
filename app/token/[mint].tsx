@@ -40,7 +40,7 @@ export default function TokenDetailsScreen() {
 
       setTokenInfo({
         mint: mint,
-        supply: json.result?.value?.uiAmountString || 0,
+        supply: json.result?.value?.uiAmount || 0,
         decimals: json.result?.value?.decimals || 0,
       });
     } catch (error) {
@@ -84,8 +84,24 @@ export default function TokenDetailsScreen() {
         {/* Token Info */}
         {tokenInfo && (
           <View style={styles.card}>
-            <View></View>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Total Supply</Text>
+              <Text style={styles.infoValue}>{tokenInfo.supply}</Text>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Decimals</Text>
+              <Text style={styles.infoValue}>{tokenInfo.decimals}</Text>
+            </View>
           </View>
+        )}
+
+        {tokenInfo && (
+          <TouchableOpacity style={styles.linkButton}>
+            <Text style={styles.linkButtonText}>View on SolScan ↗</Text>
+          </TouchableOpacity>
         )}
       </ScrollView>
     </SafeAreaProvider>
@@ -95,7 +111,7 @@ export default function TokenDetailsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#4cb816",
+    backgroundColor: "#0a0a1a",
     paddingTop: 60,
     paddingHorizontal: 16,
   },
