@@ -13,6 +13,8 @@ import {
   View,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { useWalletStore } from "../../src/stores/wallet-store";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function WalletScreen() {
   const [address, setAddress] = useState("");
@@ -20,6 +22,11 @@ export default function WalletScreen() {
   const [transactions, setTransactions] = useState([]);
   const [tokens, setTokens] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  const addToHistory = useWalletStore((s) => s.addToHistory);
+  const searchHistory = useWalletStore((s) => s.searchHistory);
+  const isDevnet = useWalletStore((s) => s.isDevnet);
+  const toggleNetwork = useWalletStore((s) => s.toggleNetwork);
 
   const short = (s: string, n = 4) => `${s.slice(0, n)}....${s.slice(-n)}`;
 
@@ -31,8 +38,12 @@ export default function WalletScreen() {
     return `${Math.floor(sec / 86400)}d ago`;
   };
 
+  const rpcUrl = isDevnet
+    ? process.env.EXPO_PUBLIC_ALCHAMY_DEVNET_API_KEY
+    : process.env.EXPO_PUBLIC_ALCHAMY_API_KEY;
+
   const rpc = async (method: string, params: any[]) => {
-    const res = await fetch(process.env.EXPO_PUBLIC_ALCHAMY_API_KEY!, {
+    const res = await fetch(rpcUrl!, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -48,16 +59,13 @@ export default function WalletScreen() {
   };
 
   const getBalance = async (addr: string) => {
-    const result = await rpc("getBalance", [
-      address,
-      { commitment: "confirmed" },
-    ]);
+    const result = await rpc("getBalance", [addr, { commitment: "confirmed" }]);
     return result.value / 1000000000;
   };
 
   const getTokens = async (addr: string) => {
     const result = await rpc("getTokenAccountsByOwner", [
-      address,
+      addr,
       {
         programId: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
       },
@@ -77,7 +85,7 @@ export default function WalletScreen() {
 
   const getTransactions = async (addr: string) => {
     const result = await rpc("getSignaturesForAddress", [
-      address,
+      addr,
       {
         commitment: "finalized",
         limit: 10,
@@ -91,18 +99,22 @@ export default function WalletScreen() {
     }));
   };
 
+  console.log(searchHistory);
+
   const handleSearch = async () => {
     const addr = address.trim();
     if (!addr) {
       return Alert.alert("Enter a wallet address");
     }
 
+    addToHistory(addr);
+
     setLoading(true);
     try {
       const [walletBalance, txs, userTokens] = await Promise.all([
-        getBalance(address),
-        getTransactions(address),
-        getTokens(address),
+        getBalance(addr),
+        getTransactions(addr),
+        getTokens(addr),
       ]);
 
       setBalance(walletBalance);
@@ -115,12 +127,51 @@ export default function WalletScreen() {
     setLoading(false);
   };
 
+  const searchFromHistory = async (addr: string) => {
+    //const address = addr;
+    setAddress(addr);
+    addToHistory(addr);
+    setLoading(true);
+
+    try {
+      const [walletBalance, txs, userTokens] = await Promise.all([
+        getBalance(addr),
+        getTransactions(addr),
+        getTokens(addr),
+      ]);
+
+      setBalance(walletBalance);
+      setTransactions(txs);
+      setTokens(userTokens);
+    } catch (error: any) {
+      Alert.alert("Error", error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearResult = () => {
+    setAddress("");
+    setBalance(null);
+    setTokens([]);
+    setTransactions([]);
+  };
+
   console.log(transactions, tokens);
 
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
       <ScrollView style={s.scroll}>
-        <Text style={s.title}>SolScan</Text>
+        <View style={s.header}>
+          <View>
+            <Text style={s.title}>SolScan</Text>
+            <Text style={s.subtitle}>Explore any Solana Wallet</Text>
+          </View>
+          <TouchableOpacity style={s.networkToggle} onPress={toggleNetwork}>
+            <View style={[s.networkDot, isDevnet && s.networkDotDevnet]} />
+            <Text style={s.networkText}>{isDevnet ? "Devnet" : "Mainnet"}</Text>
+          </TouchableOpacity>
+        </View>
         <View style={s.inputContainer}>
           <TextInput
             style={s.input}
@@ -145,7 +196,30 @@ export default function WalletScreen() {
               <Text style={s.btnText}>Search</Text>
             )}
           </TouchableOpacity>
+
+          <TouchableOpacity style={s.btnGhost} onPress={clearResult}>
+            <Text style={s.btnGhostText}>Clear</Text>
+          </TouchableOpacity>
         </View>
+
+        {searchHistory.length > 0 && balance === null && (
+          <View style={s.historySection}>
+            <Text style={s.historyTitle}>Recent Searches</Text>
+            {searchHistory.slice(0, 5).map((addr) => (
+              <TouchableOpacity
+                key={addr}
+                style={s.historyItem}
+                onPress={() => searchFromHistory(addr)}
+              >
+                <Ionicons name="time-outline" size={16} color="#6B7280" />
+                <Text style={s.historyAddress} numberOfLines={1}>
+                  {short(addr, 8)}
+                </Text>
+                <Ionicons name="chevron-forward" size={16} color="#6B7280" />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         {balance !== null && (
           <View style={s.card}>
@@ -218,6 +292,12 @@ const s = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 16,
   },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 28,
+  },
   title: {
     color: "#FFFFFF",
     fontSize: 32,
@@ -227,7 +307,59 @@ const s = StyleSheet.create({
   subtitle: {
     color: "#6B7280",
     fontSize: 15,
-    marginBottom: 28,
+  },
+  networkToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#16161D",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#2A2A35",
+    gap: 6,
+  },
+  networkDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#14F195",
+  },
+  networkDotDevnet: {
+    backgroundColor: "#F59E0B",
+  },
+  networkText: {
+    color: "#9CA3AF",
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  historySection: {
+    marginTop: 24,
+  },
+  historyTitle: {
+    color: "#6B7280",
+    fontSize: 13,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    marginBottom: 12,
+  },
+  historyItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#16161D",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#2A2A35",
+    gap: 12,
+  },
+  historyAddress: {
+    flex: 1,
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontFamily: "monospace",
   },
   inputContainer: {
     backgroundColor: "#16161D",
@@ -282,6 +414,12 @@ const s = StyleSheet.create({
     marginTop: 28,
     borderWidth: 1,
     borderColor: "#2A2A35",
+    position: "relative",
+  },
+  favoriteWrapper: {
+    position: "absolute",
+    top: 12,
+    right: 12,
   },
   label: {
     color: "#6B7280",
@@ -343,6 +481,11 @@ const s = StyleSheet.create({
     color: "#14F195",
     fontSize: 15,
     fontWeight: "600",
+  },
+  tokenRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   time: {
     color: "#6B7280",
