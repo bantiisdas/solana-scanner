@@ -15,6 +15,7 @@ import {
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { useWalletStore } from "../../src/stores/wallet-store";
 import { Ionicons } from "@expo/vector-icons";
+import FavoriteButton from "../../src/components/FavoriteButton";
 
 export default function WalletScreen() {
   const [address, setAddress] = useState("");
@@ -223,6 +224,9 @@ export default function WalletScreen() {
 
         {balance !== null && (
           <View style={s.card}>
+            <View style={s.favoriteWrapper}>
+              <FavoriteButton />
+            </View>
             <Text style={s.label}>SOL Balance</Text>
             <View style={s.balanceRow}>
               <Text style={s.balance}>{balance.toFixed(4)}</Text>
