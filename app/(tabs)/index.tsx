@@ -225,7 +225,7 @@ export default function WalletScreen() {
         {balance !== null && (
           <View style={s.card}>
             <View style={s.favoriteWrapper}>
-              <FavoriteButton />
+              <FavoriteButton address={address} />
             </View>
             <Text style={s.label}>SOL Balance</Text>
             <View style={s.balanceRow}>
