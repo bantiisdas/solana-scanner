@@ -1,8 +1,12 @@
 import {
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import React, { useState } from "react";
@@ -18,67 +22,79 @@ export default function SwapScreen() {
 
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
-      <ScrollView style={s.scroll} contentContainerStyle={s.content}>
-        <Text style={s.title}>Swap Tokens</Text>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} style={{ flex: 1 }}>
+        <ScrollView style={s.scroll} contentContainerStyle={s.content}>
+          <Text style={s.title}>Swap Tokens</Text>
 
-        <View style={[s.card, { marginBottom: 10 }]}>
-          <View style={s.cardHeader}>
-            <TouchableOpacity style={s.tokenSelector}>
-              <View style={[s.tokenIcon, { backgroundColor: "#9945FF" }]}>
-                <Text style={s.tokenIconText}>S</Text>
-              </View>
-              <Text style={s.tokenName}>{fromToken}</Text>
-              <Ionicons name="chevron-down" size={18} color="#888" />
+          <View style={[s.card, { marginBottom: 10 }]}>
+            <View style={s.cardHeader}>
+              <TouchableOpacity style={s.tokenSelector}>
+                <View style={[s.tokenIcon, { backgroundColor: "#9945FF" }]}>
+                  <Text style={s.tokenIconText}>S</Text>
+                </View>
+                <Text style={s.tokenName}>{fromToken}</Text>
+                <Ionicons name="chevron-down" size={18} color="#888" />
+              </TouchableOpacity>
+              <KeyboardAvoidingView
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                style={{ flex: 1 }}
+              >
+                <TextInput
+                  style={s.amountInput}
+                  value={fromAmount}
+                  onChangeText={setFromAmount}
+                  keyboardType="numeric"
+                  placeholder="0"
+                  placeholderTextColor="#666"
+                />
+              </KeyboardAvoidingView>
+            </View>
+            <View style={s.cardFooter}>
+              <Text style={s.balanceText}>Balance: 661 {fromToken}</Text>
+              <Text style={s.usdText}>$499.749</Text>
+            </View>
+          </View>
+
+          <View style={s.arrowContainer}>
+            <TouchableOpacity style={s.swapArrow}>
+              <Ionicons name="arrow-down" size={20} color="#FFF" />
             </TouchableOpacity>
-            <TextInput
-              style={s.amountInput}
-              value={fromAmount}
-              onChangeText={setFromAmount}
-              keyboardType="numeric"
-              placeholder="0"
-              placeholderTextColor="#666"
-            />
           </View>
-          <View style={s.cardFooter}>
-            <Text style={s.balanceText}>Balance: 661 {fromToken}</Text>
-            <Text style={s.usdText}>$499.749</Text>
-          </View>
-        </View>
 
-        <View style={s.arrowContainer}>
-          <TouchableOpacity style={s.swapArrow}>
-            <Ionicons name="arrow-down" size={20} color="#FFF" />
+          <View style={[s.card, { marginBottom: 10 }]}>
+            <View style={s.cardHeader}>
+              <TouchableOpacity style={s.tokenSelector}>
+                <View style={[s.tokenIcon, { backgroundColor: "#2775CA" }]}>
+                  <Text style={s.tokenIconText}>S</Text>
+                </View>
+                <Text style={s.tokenName}>{toToken}</Text>
+                <Ionicons name="chevron-down" size={18} color="#888" />
+              </TouchableOpacity>
+              <KeyboardAvoidingView
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                style={{ flex: 1 }}
+              >
+                <TextInput
+                  style={s.amountInput}
+                  value={toAmount}
+                  onChangeText={setFromAmount}
+                  keyboardType="numeric"
+                  placeholder="0"
+                  placeholderTextColor="#666"
+                />
+              </KeyboardAvoidingView>
+            </View>
+            <View style={s.cardFooter}>
+              <Text style={s.balanceText}>Balance: 0.0661 {toToken}</Text>
+              <Text style={s.usdText}>$499.749</Text>
+            </View>
+          </View>
+
+          <TouchableOpacity style={s.swapBtn}>
+            <Text style={s.swapBtnText}>Swap</Text>
           </TouchableOpacity>
-        </View>
-
-        <View style={[s.card, { marginBottom: 10 }]}>
-          <View style={s.cardHeader}>
-            <TouchableOpacity style={s.tokenSelector}>
-              <View style={[s.tokenIcon, { backgroundColor: "#2775CA" }]}>
-                <Text style={s.tokenIconText}>S</Text>
-              </View>
-              <Text style={s.tokenName}>{toToken}</Text>
-              <Ionicons name="chevron-down" size={18} color="#888" />
-            </TouchableOpacity>
-            <TextInput
-              style={s.amountInput}
-              value={toAmount}
-              onChangeText={setFromAmount}
-              keyboardType="numeric"
-              placeholder="0"
-              placeholderTextColor="#666"
-            />
-          </View>
-          <View style={s.cardFooter}>
-            <Text style={s.balanceText}>Balance: 0.0661 {toToken}</Text>
-            <Text style={s.usdText}>$499.749</Text>
-          </View>
-        </View>
-
-        <TouchableOpacity style={s.swapBtn}>
-          <Text style={s.swapBtnText}>Swap</Text>
-        </TouchableOpacity>
-      </ScrollView>
+        </ScrollView>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 }
