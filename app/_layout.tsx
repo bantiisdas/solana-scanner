@@ -9,6 +9,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="token/[mint]" />
         <Stack.Screen name="watchlist" />
+        <Stack.Screen name="send" options={{ presentation: "modal" }} />
       </Stack>
     </SafeAreaProvider>
   );

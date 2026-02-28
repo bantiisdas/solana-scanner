@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useWalletStore } from "../stores/wallet-store";
 import {
   clusterApiUrl,
@@ -19,46 +19,64 @@ const APP_IDENTITY = {
   icon: "favicon.ico",
 };
 
+const decodAddress = (address: string): PublicKey => {
+  if (address.includes("=") || address.includes("+") || address.includes("/")) {
+    return new PublicKey(Buffer.from(address, "base64"));
+  }
+  return new PublicKey(address);
+};
+
 export function useWallet() {
-  const [publicKey, setPublicKey] = useState<PublicKey | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [sending, setSending] = useState(false);
   const isDevnet = useWalletStore((s) => s.isDevnet);
+  const connectedPublicKey = useWalletStore((s) => s.connectedPublicKey);
+  const setConnectedPublicKey = useWalletStore((s) => s.setConnectedPublicKey);
+
+  const publicKey = useMemo(() => {
+    if (!connectedPublicKey) return null;
+
+    try {
+      return new PublicKey(connectedPublicKey);
+    } catch (error) {
+      return null;
+    }
+  }, [connectedPublicKey]);
 
   const cluster = isDevnet ? "devnet" : "mainnet-beta";
   const connection = new Connection(clusterApiUrl(cluster), "confirmed");
 
-  //Asking wallet to authorize
+  //Connect - Asking wallet to authorize
   const connect = useCallback(async () => {
     setConnecting(true);
+    console.log("hookdevnet", isDevnet);
 
     try {
       const authResult = await transact(async (wallet: Web3MobileWallet) => {
         //This Open the wallet & shows the user, authorization dialog
 
         const result = await wallet.authorize({
-          chain: cluster,
+          chain: `solana:${cluster}`,
           identity: APP_IDENTITY,
         });
         return result;
       });
 
-      const pubKey = new PublicKey(
-        Buffer.from(authResult.accounts[0].address, "base64"),
-      );
-      setPublicKey(pubKey);
-      return pubKey;
+      const pubKey = decodAddress(authResult.accounts[0].address);
+
+      setConnectedPublicKey(pubKey.toBase58());
+      return pubKey.toBase58();
     } catch (error: any) {
       console.log("Connection failed", error);
       throw error;
     } finally {
       setConnecting(false);
     }
-  }, [cluster]);
+  }, [cluster, isDevnet]);
 
   //Disconnect
   const disconnect = useCallback(() => {
-    setPublicKey(null);
+    setConnectedPublicKey(null);
   }, []);
 
   //Getting Balance
@@ -95,18 +113,70 @@ export function useWallet() {
         transaction.feePayer = publicKey;
 
         //Send the Transaction to Wallet to sign
-        const txSignature = await transact(async (wallet: Web3MobileWallet) => {
-          await wallet.authorize({ chain: cluster, identity: APP_IDENTITY });
+        const signedTransaction = await transact(
+          async (wallet: Web3MobileWallet) => {
+            await wallet.authorize({
+              chain: `solana:${cluster}`,
+              identity: APP_IDENTITY,
+            });
 
-          //sending transaction
-          const signatures = await wallet.signTransactions({
-            transactions: [transaction],
-          });
+            //sending transaction
+            const signedTxs = await wallet.signTransactions({
+              transactions: [transaction],
+            });
 
-          return signatures[0];
-        });
+            if (!signedTxs || signedTxs.length === 0) {
+              throw new Error("No Signed Transaction returned from wallet");
+            }
 
-        return txSignature;
+            return signedTxs[0];
+          },
+        );
+
+        //delay after wallet closes (network delay)
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        //sending transaction with retry logic
+        const rawTransaction = signedTransaction.serialize();
+
+        let signature: string | null = null;
+        let lastError: Error | null = null;
+
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try {
+            signature = await connection.sendRawTransaction(rawTransaction, {
+              maxRetries: 2,
+              skipPreflight: true,
+            });
+            break;
+          } catch (error: unknown) {
+            lastError = error as Error;
+            console.log(`Attempt ${attempt} failed`, lastError.message);
+            if (attempt < 3) {
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+            }
+          }
+        }
+
+        if (!signature) {
+          throw (
+            lastError ||
+            new Error("Failed to send Transaction after 3 attempts")
+          );
+        }
+
+        const confirmTransaction = await connection.confirmTransaction(
+          { signature, blockhash, lastValidBlockHeight },
+          "confirmed",
+        );
+
+        if (confirmTransaction.value.err) {
+          throw new Error(
+            `Transaction Failed: ${confirmTransaction.value.err}`,
+          );
+        }
+
+        return signature;
       } catch (error: any) {
         console.log(error.message);
       } finally {
@@ -124,5 +194,6 @@ export function useWallet() {
     connecting,
     getBalance,
     sendSol,
+    sending,
   };
 }

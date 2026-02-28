@@ -7,6 +7,7 @@ import {
 } from "react-native";
 import React from "react";
 import { Ionicons } from "@expo/vector-icons";
+import { useWalletStore } from "../stores/wallet-store";
 
 interface Props {
   connected: boolean;
@@ -23,6 +24,9 @@ export default function ConnectButton({
   onDisconnect,
 }: Props) {
   console.log(connected, " ", publicKey);
+
+  const isDevnet = useWalletStore((s) => s.isDevnet);
+  console.log("Devnet", isDevnet);
   if (connecting) {
     return (
       <View style={[styles.button, styles.connecting]}>
